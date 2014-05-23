@@ -1,19 +1,9 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import ConfigParser
-import codecs
-import datetime
-import optparse
-import os
-import shutil
-import sys
-import time
-from xml.dom import minidom
-
 
 u'''
-pgpruleshelper.py [options] [pfad/zur/source.xml [email1 email2 ...]]
+pgpruleshelper.py [options] [pfad/zur/source.xml] [email1 email2 ...]
 
 Update/Export der Empfängerregeln von enigmails Regeln in der pgprules.xml
 für auswählbare Adressen aus einer Datei gleichen Formats.
@@ -37,6 +27,16 @@ c) der Parameter der Export-Option; ist der Parameter ein leerer String ("") wir
 
 pgpruleshelper.py --help zeigt Optionen
 '''
+
+import ConfigParser
+import codecs
+import datetime
+import optparse
+import os
+import shutil
+import sys
+import time
+from xml.dom import minidom
 
 __version__ = '0.3.1'
 '''
@@ -384,7 +384,7 @@ def buildUi(args, opts, UiCls=None, ModeCls=None):
 
 def get_optparser():
 
-    oparser = optparse.OptionParser(usage=__doc__)
+    oparser = optparse.OptionParser(__doc__)
     oparser.add_option('-e', '--export',
                        action="store", type="string", dest="exportpath",
                        help="""Kein Thunderbird-Update, Export zum angegebenen Dateipfad inkl. Dateiname,
