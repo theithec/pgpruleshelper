@@ -235,8 +235,8 @@ class Ui(object):
                     rules.append(rule)
         else:
             rules = self.askForRules()
-            if not rules:
-                self.err("Keine Regeln angegeben")
+        if not rules:
+            self.err("Keine Regeln angegeben")
         return rules
 
     def rulelistFromPath(self, fpath, ask_create=True):
