@@ -38,8 +38,11 @@ import sys
 import time
 from xml.dom import minidom
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 '''
+fixed missing rules-validation (indentation-err)
+
+'0.3.1'
 changes:
 vor dem Erstellen der Sicherheitskopie wird geprüft, ob das Orginal überhaupt existiert.
 Dadurch kein Crash bei nicht-existenter Datei.
@@ -235,8 +238,8 @@ class Ui(object):
                     rules.append(rule)
         else:
             rules = self.askForRules()
-            if not rules:
-                self.err("Keine Regeln angegeben")
+        if not rules:
+            self.err("Keine Regeln angegeben")
         return rules
 
     def rulelistFromPath(self, fpath, ask_create=True):
