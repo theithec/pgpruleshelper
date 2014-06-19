@@ -70,8 +70,11 @@ Dadurch kein Crash bei nicht-existenter Datei.
 defl = locale.getdefaultlocale()
 
 LANG_ID = 1
-if defl[0].lower().startswith('de'):
-    LANG_ID = 0
+try:
+    if defl[0].lower().startswith('de'):
+        LANG_ID = 0
+except AttributeError:
+    pass
 #key=en , de=0, [en=1]
 
 T = {
@@ -284,8 +287,8 @@ class Ui(object):
             print target.toxml()
 
     def successMsg(self):
-        return os.linesep.join(_('successmsg') % self.longtitle,
-                               self.successhint)
+        return os.linesep.join((_('successmsg') % self.longtitle,
+                               self.successhint))
 
     def getSource(self):
         try:
