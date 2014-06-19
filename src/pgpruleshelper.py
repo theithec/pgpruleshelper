@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 u'''
 pgpruleshelper.py [options] [pfad/zur/source.xml] [email1 email2 ...]
 
@@ -12,7 +11,8 @@ Bei Update wird eine Kopie mit Timestamp erstellt
 1. Die Source-Datei (die mit den Updates)
 a) wird im GUI-Modus(default) abgefragt, wenn keine Argumente vorhanden sind
 b) ist das erste Argument (wird auch im "öffnen mit"-Dialog übergeben)
-c) wenn die Export-Option gewählt ist und keine Argumente vorhanden sind, gilt 3)a-b
+c) wenn die Export-Option gewählt ist und keine Argumente vorhanden sind,
+   gilt 3)a-b
 
 2. Die E-Mail-Adressen,deren Regeln geändert  werden,
 a) der Parameter der Email-Option (als kommaseperierte Liste)
@@ -20,13 +20,17 @@ b) durch die Option -a oder --all alle Regeln aus der Source-Datei
 c) werden sonst  im Gui-Modus abgefragt
 
 3. Die Target-Datei
-a) ist die pgprules.xml  aus dem einzigen oder dem als 'Default' gekennzeichneten Thunderbird-Profil-Ordner
-b) ist die pgprules.xml aus dem durch die Profil-Option ausgewählten Thunderbird-Profil-Ordner
-c) der Parameter der Export-Option; ist der Parameter ein leerer String ("") wird sie im GUI-Modus 
-    per Dialog abgefragt, im CLi-Modus wird das erzeugte XML ausgegeben, Kurzform für -e "" ist -E
+a) ist die pgprules.xml  aus dem einzigen oder dem als 'Default'
+   gekennzeichneten Thunderbird-Profil-Ordner
+b) ist die pgprules.xml aus dem durch die Profil-Option ausgewählten
+   Thunderbird-Profil-Ordner
+c) der Parameter der Export-Option; ist der Parameter ein leerer String ("")
+   wird sie im GUI-Modus per Dialog abgefragt, im CLi-Modus wird das erzeugte
+   XML ausgegeben, Kurzform für -e "" ist -E
 
 pgpruleshelper.py --help zeigt Optionen
 '''
+
 
 import ConfigParser
 import codecs
@@ -38,13 +42,20 @@ import sys
 import time
 from xml.dom import minidom
 
-__version__ = '0.3.2'
+import locale
+
+
+__version__ = '0.3.3'
 '''
+a little bit l18n
+
+'0.3.2'
 fixed missing rules-validation (indentation-err)
 
 '0.3.1'
 changes:
-vor dem Erstellen der Sicherheitskopie wird geprüft, ob das Orginal überhaupt existiert.
+vor dem Erstellen der Sicherheitskopie wird geprüft, ob das Orginal überhaupt
+existiert.
 Dadurch kein Crash bei nicht-existenter Datei.
 
 0.3
@@ -52,13 +63,89 @@ Dadurch kein Crash bei nicht-existenter Datei.
 
 '''
 
+### l18n
+# deployment should be as simpel as possible
+# so all has to be in one file - including base translation
+#
+defl = locale.getdefaultlocale()
+
+LANG_ID = 1
+if defl[0].lower().startswith('de'):
+    LANG_ID = 0
+#key=en , de=0, [en=1]
+
+T = {
+    u'export': (u'exportieren',),
+
+    u'update': (u'aktualisieren',),
+
+    u'successhint':
+        (u'''\nBitte Thunderbird neu starten - \n
+außer du bist dir sicher, dass seit dem Start von Thunderbird
+keine Empfängerregeln benutzt oder
+der Empfängerregeln-Dialog aufgerufen wurde.
+(Beachte, dass Thunderbird u.U. automatisch im Hintergrund gestartet wurde).
+
+Bei Problemen die entsprechende Regel löschen,
+Thunderbird ganz beenden & neu starten,
+die Regel als allererstes neu importieren.
+''',
+    u'''\nPlease restart thunderbird  - \n
+außer du bist dir sicher, dass seit dem Start von Thunderbird
+keine Empfängerregeln benutzt oder
+der Empfängerregeln-Dialog aufgerufen wurde.
+(Beachte, dass Thunderbird u.U. automatisch im Hintergrund gestartet wurde).
+
+Bei Problemen die entsprechende Regel löschen,
+Thunderbird ganz beenden & neu starten,
+die Regel als allererstes neu importieren.
+'''),
+
+    u'longtitle':
+        (u'%s der Empfängerregeln (v.%s)',
+         u'%s pgprules (v.%s)'),
+
+    u'successmsg': (
+        u'%s soweit erfolgreich.',
+        u'%s ok',
+    ),
+
+    u'no rule for': (u"Keine Regel für %s",),
+
+    u'no rules given': (u"Keine Regeln angegeben",),
+
+    u'failed': (u"%s der Empfängerregeln NICHT erfolgreich!",
+                u'%s FAILED!'),
+
+    u'no source file given': (u"Keine Source-Datei angegeben"),
+
+    u'invalid file': (u"Ungültige Datei",),
+
+    u'open file with rules': (u'Datei mit Regeln öffnen',),
+
+    u'choose rules': (u'Für welche Adressen die Regeln %s?',
+                      u'choose rules for %s',
+                      ),
+
+    u'create file?': (u'Datei %s erstellen?',)
+}
+
+
+def _(key):
+    try:
+        return T[key][LANG_ID]
+    except (KeyError, IndexError):
+        return key
+
+
+### xml
+
 try:
     from xml.parsers.expat import ExpatError as ParseError
 except ImportError:  # py2.2+-?
     from xml.sax._exceptions import SAXParseException as ParseError
 
 
-### xml
 def mailval(rule):
     return rule.attributes['email'].value[1:-1]
 
@@ -75,7 +162,7 @@ def update_rulelist(target_rulelist, rules):
         email = mailval(rule)
         # keyIDs to upper - without not "0x"-prefix
         v = rule.attributes['keyId'].value
-        rule.attributes['keyId'].value = v.upper().replace('0X','0x')
+        rule.attributes['keyId'].value = v.upper().replace('0X', '0x')
 
         oldrule = rule_for_mail(target_rulelist, email)
         root = target_rulelist.documentElement
@@ -135,8 +222,8 @@ def mk_timestamped_copy(fpath):
 ### ui
 class Export(object):
     def initMode(self):
-        self.title = 'Export'
-        self.action = 'exportieren'
+        self.title = u'Export'
+        self.action = _(u'export')
 
     def getSourcePathForMode(self):
         return self.tbRulelistpath()
@@ -156,18 +243,9 @@ class Export(object):
 
 class Update(object):
     def initMode(self):
-        self.title = 'Update'
-        self.action = 'aktualisieren'
-        self.successhint = u'''\nBitte Thunderbird neu starten - \n
-außer du bist dir sicher, dass seit dem Start von Thunderbird
-keine Empfängerregeln benutzt oder
-der Empfängerregeln-Dialog aufgerufen wurde.
-(Beachte, dass Thunderbird u.U. automatisch im Hintergrund gestartet wurde).
-
-Bei Problemen die entsprechende Regel löschen,
-Thunderbird ganz beenden & neu starten,
-die Regel als allererstes neu importieren.
-'''
+        self.title = u'Update'
+        self.action = _(u'update')
+        self.successhint = _(u'successhint')
 
     def getSourcePathForMode(self):
         return self.askForSourcePath()
@@ -193,8 +271,7 @@ class Ui(object):
         self.successhint = u''
 
     def start(self):
-        self.longtitle = u'%s der Empfängerregeln (v.%s)' % (
-                                            self.title, __version__)
+        self.longtitle = _(u'longtitle') % (self.title, __version__)
         self.source = self.getSource()
         rules = self.getSelectedRules()
         self.targetpath = self.getTargetPathForMode()
@@ -207,8 +284,8 @@ class Ui(object):
             print target.toxml()
 
     def successMsg(self):
-        return os.linesep.join(
-            ((u'%s soweit erfolgreich.' % self.longtitle), self.successhint))
+        return os.linesep.join(_('successmsg') % self.longtitle,
+                               self.successhint)
 
     def getSource(self):
         try:
@@ -233,13 +310,13 @@ class Ui(object):
                 email = email.strip()
                 rule = rule_for_mail(self.source, email)
                 if not rule:
-                    self.err(u"Keine Regel für %s" % email)
+                    self.err(_(u"no rule for %s") % email)
                 else:
                     rules.append(rule)
         else:
             rules = self.askForRules()
         if not rules:
-            self.err("Keine Regeln angegeben")
+            self.err(_("no rules given"))
         return rules
 
     def rulelistFromPath(self, fpath, ask_create=True):
@@ -249,11 +326,11 @@ class Ui(object):
             if ask_create and self.allowCreateForMode():
                 self.writeRulelist(empty_rulelist())
                 return self.rulelistFromPath(fpath)
-            self.err(u"Ungültige Datei: %s\n(%s)" % (fpath, e))
+            self.err(_(u"invalid file") + u": %s\n(%s)" % (fpath, e))
         except ParseError, e:
-            self.err(u"Keine gültige xml-Datei: %s\n" % (fpath,) + str(e))
+            self.err(_(u"invalid xml file") + u": %s\n" % (fpath,) + str(e))
         if xml.documentElement.tagName != "pgpRuleList":
-            self.err(u"Datei enthält keine Liste mit Regeln: %s" % fpath)
+            self.err(_(u"file contains no rules %s") % fpath)
         return xml
 
     def tbRulelistpath(self):
@@ -262,18 +339,18 @@ class Ui(object):
             self.opts.profilename
         )
         if not profile_dir:
-            self.err(u"Kein Thunderbird-Profil gefunden")
+            self.err(_(u"no thunderbird profile found"))
         return os.path.join(profile_dir, 'pgprules.xml')
 
     def writeRulelist(self, rulelist):
         try:
             write_rulelist(rulelist, self.targetpath)
         except IOError, e:
-            self.err(u"Fehler beim Schreiben: %s\n%s" % (self.targetpath, e))
+            self.err(_("write error") + ": %s\n%s" % (self.targetpath, e))
 
     def err(self, text):
         self.errmsg = text
-        self.msg(self.errmsg + u"\n%s der Empfängerregeln NICHT erfolgreich!" % self.title)
+        self.msg(os.linesep.join((self.errmsg,  _(u"failed") % self.title)))
         if not self.run_tests:
             sys.exit(-1)
         else:
@@ -282,7 +359,7 @@ class Ui(object):
 
 class Cli(Ui):
     def askForSourcePath(self):
-        self.err("Keine Source-Datei angegeben")
+        self.err(_("no source file given"))
 
     def askForTargetPath(self):
         return None
@@ -314,17 +391,17 @@ class Gui(Ui):
             initialdir=os.path.expanduser('~'),
         )
         if not fp:
-            self.err(u"Ungültige Angabe: %s" % title)
+            self.err(_(u"invalid file") + ": %s" % title)
         return fp
 
     def askForSourcePath(self):
         return self._get_filepath(self.fileDialog.askopenfilename,
-                                  u"Datei mit neuen Regeln")
+                                  _(u"open file with rules"))
 
     def askForTargetPath(self):
         return self._get_filepath(
             self.fileDialog.asksaveasfilename,
-            u"Export-Datei"
+            _(u"exportfile")
         )
 
     def askForRules(self):
@@ -339,7 +416,7 @@ class Gui(Ui):
             def body(self, master):
                 cnt = 0
                 l = label(master,
-                          text=u"Für welche Adressen die Regeln %s?" %
+                          text=_(u'choose rules') %
                           modeaction)
                 l.pack(anchor="w")
                 l.grid(row=cnt)
@@ -361,7 +438,7 @@ class Gui(Ui):
     def askCreate(self):
         return super(Gui, self).askCreate() or \
            self.msgbox.askyesno(self.title,
-                                u"Datei %s erstellen?" % self.targetpath)
+                                _(u"create file?") % self.targetpath)
 
     def msg(self, text):
         self.msgbox.showinfo(self.longtitle, text)
@@ -390,46 +467,47 @@ def get_optparser():
     oparser = optparse.OptionParser(__doc__)
     oparser.add_option('-e', '--export',
                        action="store", type="string", dest="exportpath",
-                       help="""Kein Thunderbird-Update, Export zum angegebenen Dateipfad inkl. Dateiname,
-                       leerer String bewirkt Dataiausauwahldialog(GUI)/Konsolenoutput(CLI)""")
+                       help="""Export to given filepath.
+If the  argument is an empty string, gui-mode asks for path,
+cli-mode prints output""")
     oparser.add_option('-E',
                        action="store_const", const="", dest="exportpath",
-                       help=u"""kurz für -e \"\"""")
+                       help=u"""shortform for -e \"\"""")
     oparser.add_option('-p', '--profile',
                        dest='profilename',
-                       help="Zu benutzendes Thunderbird-Profil (Profilname)")
+                       help="name of the thunderbird-profile to use")
     oparser.add_option('-t', '--thunderbird-path',
                        dest='tbdirpath',
                        default="",
-                       help="Erzwinge Pfad zum Thunderbird-Userdir ")
+                       help="force path to thunderbird-userdir ")
     oparser.add_option('-c', '--create-target',
                        dest='createtarget',
                        action='store_true',
-                       help=u"Erzeuge Ruleslist im Thunderbird-Profil, wenn nicht vorhanden (Default: False/gui:Abfrage)",
+                       help=u"create rulelist if nonexistent. Default for cli: false, for gui: ask",
                        default=False)
     oparser.add_option('-n', '--no-gui',
                        dest='use_gui',
                        action='store_false',
                        default=True,
-                       help=u"benutze Kommandozeile (Default: False)",
+                       help=u"use cli (command line interface) (Default: False)",
                        )
     oparser.add_option('-s', '--skip-copy',
                        dest='mk_cpy',
                        action='store_false',
                        default=True,
-                       help=u"Erzeuge keine Kopie bei Update (Default: False)",
+                       help=u"no backup-copy in update-mode(Default: False)",
                        )
     oparser.add_option('-a', '--import-all',
                        dest='importall',
                        action='store_true',
                        default=False,
-                       help=u"importiert alle Regeln aus der source-Datei (Default: False)",
+                       help=u"importiert all rules from source file (Default: False)",
                        )
     oparser.add_option('-m', '--emails',
                        dest='emails',
                        #action='store_true',
                        default=None,
-                       help=u"zu aktualisierende Adressen, kommaseperiert(Default: leer/gui:Abfrage)",
+                       help=u"(rule-)adresses to update, comma seperated list. Default: empty/gui:ask)",
                        )
     return oparser
 
