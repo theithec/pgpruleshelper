@@ -12,7 +12,7 @@ Bei Update wird eine Kopie mit Timestamp erstellt
 a) wird im GUI-Modus(default) abgefragt, wenn keine Argumente vorhanden sind
 b) ist das erste Argument (wird auch im "öffnen mit"-Dialog übergeben)
 c) wenn die Export-Option gewählt ist und keine Argumente vorhanden sind,
-   gilt 3)a-b
+gilt 3)a-b
 
 2. Die E-Mail-Adressen,deren Regeln geändert  werden,
 a) der Parameter der Email-Option (als kommaseperierte Liste)
@@ -21,12 +21,12 @@ c) werden sonst  im Gui-Modus abgefragt
 
 3. Die Target-Datei
 a) ist die pgprules.xml  aus dem einzigen oder dem als 'Default'
-   gekennzeichneten Thunderbird-Profil-Ordner
+gekennzeichneten Thunderbird-Profil-Ordner
 b) ist die pgprules.xml aus dem durch die Profil-Option ausgewählten
-   Thunderbird-Profil-Ordner
+Thunderbird-Profil-Ordner
 c) der Parameter der Export-Option; ist der Parameter ein leerer String ("")
-   wird sie im GUI-Modus per Dialog abgefragt, im CLi-Modus wird das erzeugte
-   XML ausgegeben, Kurzform für -e "" ist -E
+wird sie im GUI-Modus per Dialog abgefragt, im CLi-Modus wird das erzeugte
+XML ausgegeben, Kurzform für -e "" ist -E
 
 pgpruleshelper.py --help zeigt Optionen
 '''
@@ -52,8 +52,12 @@ from xml.dom import minidom
 import locale
 
 
-__version__ = '0.3.3'
+__version__ = '0.4'
 '''
+py3 compatibility
+py2 requires 2.5
+
+'0.3.3'
 a little bit l18n
 
 '0.3.2'
@@ -61,9 +65,9 @@ fixed missing rules-validation (indentation-err)
 
 '0.3.1'
 changes:
-vor dem Erstellen der Sicherheitskopie wird geprüft, ob das Orginal überhaupt
-existiert.
-Dadurch kein Crash bei nicht-existenter Datei.
+    vor dem Erstellen der Sicherheitskopie wird geprüft, ob das Orginal
+    überhaupt existiert.
+    Dadurch kein Crash bei nicht-existenter Datei.
 
 0.3
 ...
@@ -89,30 +93,30 @@ T = {
     u'update': (u'aktualisieren',),
 
     u'successhint':
-        (u'''\nBitte Thunderbird neu starten - \n
-außer du bist dir sicher, dass seit dem Start von Thunderbird
-keine Empfängerregeln benutzt oder
-der Empfängerregeln-Dialog aufgerufen wurde.
-(Beachte, dass Thunderbird u.U. automatisch im Hintergrund gestartet wurde).
+    (u'''\nBitte Thunderbird neu starten - \n
+     außer du bist dir sicher, dass seit dem Start von Thunderbird
+     keine Empfängerregeln benutzt oder
+     der Empfängerregeln-Dialog aufgerufen wurde.
+     Beachte, dass Thunderbird u.U. automatisch im Hintergrund gestartet wurde.
 
-Bei Problemen die entsprechende Regel löschen,
-Thunderbird ganz beenden & neu starten,
-die Regel als allererstes neu importieren.
-''',
-    u'''\nPlease restart thunderbird  - \n
-außer du bist dir sicher, dass seit dem Start von Thunderbird
-keine Empfängerregeln benutzt oder
-der Empfängerregeln-Dialog aufgerufen wurde.
-(Beachte, dass Thunderbird u.U. automatisch im Hintergrund gestartet wurde).
+     Bei Problemen die entsprechende Regel löschen,
+     Thunderbird ganz beenden & neu starten,
+     die Regel als allererstes neu importieren.
+     ''',
+     u'''\nPlease restart thunderbird  - \n
+     außer du bist dir sicher, dass seit dem Start von Thunderbird
+     keine Empfängerregeln benutzt oder
+     der Empfängerregeln-Dialog aufgerufen wurde.
+     Beachte, dass Thunderbird u.U. automatisch im Hintergrund gestartet wurde.
 
-Bei Problemen die entsprechende Regel löschen,
-Thunderbird ganz beenden & neu starten,
-die Regel als allererstes neu importieren.
-'''),
+     Bei Problemen die entsprechende Regel löschen,
+     Thunderbird ganz beenden & neu starten,
+     die Regel als allererstes neu importieren.
+     '''),
 
     u'longtitle':
-        (u'%s der Empfängerregeln (v.%s)',
-         u'%s pgprules (v.%s)'),
+    (u'%s der Empfängerregeln (v.%s)',
+     u'%s pgprules (v.%s)'),
 
     u'successmsg': (
         u'%s soweit erfolgreich.',
@@ -137,7 +141,7 @@ die Regel als allererstes neu importieren.
                       ),
 
     u'create file?': (u'Datei %s erstellen?',)
-}
+    }
 
 
 def _(key):
@@ -147,7 +151,7 @@ def _(key):
         return key
 
 
-### xml
+# *** xml ***
 
 try:
     from xml.parsers.expat import ExpatError as ParseError
@@ -189,7 +193,8 @@ def write_rulelist(rulelist, filepath):
     rulelist.writexml(codecs.open(filepath, encoding='utf-8', mode='w+'))
 
 
-### thunderbird:
+# *** thunderbird ***
+
 def get_tb_dir():
     if sys.platform.startswith('linux'):
         return os.path.join(os.environ['HOME'], '.thunderbird')
@@ -208,27 +213,32 @@ def get_tb_profile_dir(tb_dir, profilename=None):
     cop.read(pfile)
     sections = [s for s in cop.sections() if s.startswith('Profile')]
 
-    is_default = lambda s: cop.has_option(s, 'Default') and cop.get(s,
-                                                                'Default')
-    is_name = lambda s: cop.get(s, 'Name') == profilename
-    is_wanted = {True: is_name, False: is_default}[bool(profilename)]
+    def is_default(section):
+        return (cop.has_option(section, 'Default') and
+                cop.get(section, 'Default'))
 
+    def is_name(section):
+        return cop.get(section, 'Name') == profilename
+
+    is_wanted = is_name if profilename else is_default
     for section in sections:
         if len(sections) == 1 or is_wanted(section):
             return os.path.join(tb_dir, cop.get(section, 'Path'))
 
 
-### misc
+# *** misc ***
+
 def mk_timestamped_copy(fpath):
     if (os.path.exists(fpath)):
         ts = datetime.datetime.fromtimestamp(time.time()).strftime(
-                                                    '%Y-%m-%d_%H%M%S')
+            '%Y-%m-%d_%H%M%S')
         i = fpath.rfind('.')
-        cpath = ''.join(fpath[:i] + ts + fpath[i:])
+        cpath = ''.join(fpath[:i], ts, fpath[i:])
         shutil.copyfile(fpath, cpath)
 
 
-### ui
+# *** ui ***
+
 class Export(object):
     def initMode(self):
         self.title = u'Export'
@@ -291,11 +301,11 @@ class Ui(object):
             self.writeRulelist(target)
             self.msg(self.successMsg())
         else:
-            print (target.toxml())
+            print(target.toxml())
 
     def successMsg(self):
         return os.linesep.join((_('successmsg') % self.longtitle,
-                               self.successhint))
+                                self.successhint))
 
     def getSource(self):
         try:
@@ -323,8 +333,8 @@ class Ui(object):
                     rules.append(rule)
         else:
             rules = self.askForRules()
-        if not rules:
-            self.err(_("no rules given"))
+            if not rules:
+                self.err(_("no rules given"))
 
         return rules
 
@@ -338,8 +348,8 @@ class Ui(object):
             self.err(_(u"invalid file") + u": %s\n(%s)" % (fpath, e))
         except ParseError as e:
             self.err(_(u"invalid xml file") + u": %s\n" % (fpath,) + str(e))
-        if xml.documentElement.tagName != "pgpRuleList":
-            self.err(_(u"file contains no rules %s") % fpath)
+            if xml.documentElement.tagName != "pgpRuleList":
+                self.err(_(u"file contains no rules %s") % fpath)
 
         return xml
 
@@ -356,7 +366,7 @@ class Ui(object):
     def writeRulelist(self, rulelist):
         try:
             write_rulelist(rulelist, self.targetpath)
-        except IOError as  e:
+        except IOError as e:
             self.err(_("write error") + ": %s\n%s" % (self.targetpath, e))
 
     def err(self, text):
@@ -370,7 +380,6 @@ class Ui(object):
 
 class Cli(Ui):
     def askForSourcePath(self):
-        import pdb; pdb.set_trace()
         self.err(_("no source file given"))
 
     def askForTargetPath(self):
@@ -386,19 +395,23 @@ class Cli(Ui):
 class Gui(Ui):
     def __init__(self, args, opts):
         if py2:
-            import Tkinter
             from Tkinter import Tk, IntVar, Checkbutton, Label
-            import tkFileDialog as filedialog, \
-                   tkSimpleDialog as simpledialog, \
-                   tkMessageBox as messagebox
+            import tkFileDialog as filedialog
+            import tkSimpleDialog as simpledialog
+            import tkMessageBox as messagebox
 
         if py3:
-            import tkinter
-            from tkinter import filedialog, simpledialog, messagebox, Tk, IntVar, Checkbutton, Label
+            from tkinter import ( # noqa
+                filedialog, simpledialog, messagebox, Tk, IntVar, Checkbutton,
+                Label)
+
         self.tk = Tk()
         if sys.version_info >= (2, 6):
             self.tk.withdraw()
-        self.IntVar, self.checkbutton, self.label = IntVar, Checkbutton, Label
+
+        self.IntVar = IntVar
+        self.checkbutton = Checkbutton
+        self.label = Label
         self.filedialog = filedialog
         self.simpledialog = simpledialog
         self.msgbox = messagebox
@@ -412,7 +425,7 @@ class Gui(Ui):
         )
         if not fp:
             self.err(_(u"invalid file") + ": %s" % title)
-        return fp
+            return fp
 
     def askForSourcePath(self):
         return self._get_filepath(self.filedialog.askopenfilename,
@@ -457,8 +470,8 @@ class Gui(Ui):
 
     def askCreate(self):
         return super(Gui, self).askCreate() or \
-           self.msgbox.askyesno(self.title,
-                                _(u"create file?") % self.targetpath)
+            self.msgbox.askyesno(self.title,
+                                 _(u"create file?") % self.targetpath)
 
     def msg(self, text):
         self.msgbox.showinfo(self.longtitle, text)
@@ -468,7 +481,7 @@ def buildUi(args, opts, UiCls=None, ModeCls=None):
     if not UiCls:
         uiClzs = (Cli, Gui,)
         UiCls = uiClzs[int(opts.use_gui)]
-    ui = UiCls(args, opts)
+        ui = UiCls(args, opts)
 
     if not ModeCls:
         modeClzs = (Export, Update)
@@ -487,14 +500,13 @@ def get_optparser():
     oparser = optparse.OptionParser(__doc__)
     oparser.add_option('-e', '--export',
                        action="store", type="string", dest="exportpath",
-                       help="""Export to given filepath.
-If the  argument is an empty string, gui-mode asks for path,
-cli-mode prints output""")
+                       help="""Export to given filepath. If the  argument is an
+                               empty string, gui-mode asks for path,
+                               cli-mode prints output""")
     oparser.add_option('-E',
                        action="store_const", const="", dest="exportpath",
                        help=u"""shortform for -e \"\"""")
-    oparser.add_option('-p', '--profile',
-                       dest='profilename',
+    oparser.add_option('-p', '--profile', dest='profilename',
                        help="name of the thunderbird-profile to use")
     oparser.add_option('-t', '--thunderbird-path',
                        dest='tbdirpath',
@@ -503,32 +515,29 @@ cli-mode prints output""")
     oparser.add_option('-c', '--create-target',
                        dest='createtarget',
                        action='store_true',
-                       help=u"create rulelist if nonexistent. Default for cli: false, for gui: ask",
-                       default=False)
+                       default=False,
+                       help=u"""create rulelist if nonexistent.
+                                Default for cli: false, for gui: ask""")
     oparser.add_option('-n', '--no-gui',
                        dest='use_gui',
                        action='store_false',
                        default=True,
-                       help=u"use cli (command line interface) (Default: False)",
-                       )
+                       help=u"use command line (Default: False)")
     oparser.add_option('-s', '--skip-copy',
                        dest='mk_cpy',
                        action='store_false',
                        default=True,
-                       help=u"no backup-copy in update-mode(Default: False)",
-                       )
+                       help=u"no backup-copy in update-mode(Default: False)")
     oparser.add_option('-a', '--import-all',
                        dest='importall',
                        action='store_true',
                        default=False,
-                       help=u"importiert all rules from source file (Default: False)",
-                       )
+                       help=u"import all rules from source (Default: False)")
     oparser.add_option('-m', '--emails',
                        dest='emails',
-                       #action='store_true',
                        default=None,
-                       help=u"(rule-)adresses to update, comma seperated list. Default: empty/gui:ask)",
-                       )
+                       help=u"""(rule-)adresses to update, comma seperated list.
+                            Default: empty/gui:ask)""")
     return oparser
 
 
