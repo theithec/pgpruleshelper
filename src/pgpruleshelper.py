@@ -48,9 +48,7 @@ import shutil
 import sys
 import time
 from xml.dom import minidom
-
 import locale
-
 
 __version__ = '0.4'
 '''
@@ -233,7 +231,7 @@ def mk_timestamped_copy(fpath):
         ts = datetime.datetime.fromtimestamp(time.time()).strftime(
             '%Y-%m-%d_%H%M%S')
         i = fpath.rfind('.')
-        cpath = ''.join(fpath[:i], ts, fpath[i:])
+        cpath = ''.join((fpath[:i], ts, fpath[i:]))
         shutil.copyfile(fpath, cpath)
 
 

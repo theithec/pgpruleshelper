@@ -3,9 +3,13 @@
 * **Export**  rules from enigmails pgprules.xml into a file of the same format
 	
 
-## Install
-Make sure you have python2 >=2.4 installed. Older Versions _may_ work.
+## Requirements 
+From version 0.4 and on python2 >= 2.5 or python3 >= 3.4 (older 3's not tested) is required
+For older versions is python2 >=2.4 is required. Older python versions _may_ work.
+python-tk/python3-tk is required for the gui.
 
+
+## Install
 Save the file 'pgpruleshelper.py' somewhere you remember and make it executable
 
 
