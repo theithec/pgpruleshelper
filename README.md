@@ -6,7 +6,7 @@
 ## Requirements 
 From version 0.4 and on python2 >= 2.5 or python3 >= 3.4 (older 3's not tested) is required.
  
-For older versions is python2 >=2.4 is required. Older python versions _may_ work. 
+For older versions python2 >=2.4 is required. Older python versions _may_ work. 
 
 python-tk/python3-tk is required for the gui.
 
