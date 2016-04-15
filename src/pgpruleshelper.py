@@ -31,8 +31,15 @@ c) der Parameter der Export-Option; ist der Parameter ein leerer String ("")
 pgpruleshelper.py --help zeigt Optionen
 '''
 
+py2 = False
+py3 = False
+try:
+    import ConfigParser
+    py2 = True
+except ImportError:
+    import configparser as ConfigParser
+    py3 = True
 
-import ConfigParser
 import codecs
 import datetime
 import optparse
@@ -63,19 +70,18 @@ Dadurch kein Crash bei nicht-existenter Datei.
 
 '''
 
-### l18n
+# *** l18n ***
 # deployment should be as simpel as possible
-# so all has to be in one file - including base translation
+# so everything should to be in one file - including base translation
 #
 defl = locale.getdefaultlocale()
 
-LANG_ID = 1
+LANG_ID = 1  # en
 try:
     if defl[0].lower().startswith('de'):
         LANG_ID = 0
 except AttributeError:
     pass
-#key=en , de=0, [en=1]
 
 T = {
     u'export': (u'exportieren',),
@@ -120,7 +126,7 @@ die Regel als allererstes neu importieren.
     u'failed': (u"%s der Empfängerregeln NICHT erfolgreich!",
                 u'%s FAILED!'),
 
-    u'no source file given': (u"Keine Source-Datei angegeben"),
+    u'no source file given': (u"Keine Source-Datei angegeben", ),
 
     u'invalid file': (u"Ungültige Datei",),
 
@@ -257,6 +263,7 @@ class Update(object):
         p = self.tbRulelistpath()
         if p and self.opts.mk_cpy:
             mk_timestamped_copy(p)
+
         return p
 
     def getTargetForMode(self):
@@ -284,7 +291,7 @@ class Ui(object):
             self.writeRulelist(target)
             self.msg(self.successMsg())
         else:
-            print target.toxml()
+            print (target.toxml())
 
     def successMsg(self):
         return os.linesep.join((_('successmsg') % self.longtitle,
@@ -295,10 +302,8 @@ class Ui(object):
             spath = self.args[0]
         except IndexError:
             spath = self.getSourcePathForMode()
-        return self.rulelistFromPath(spath, False)
 
-    def getTargetPathForMode(self):
-        return self.askForTargetPath()
+        return self.rulelistFromPath(spath, False)
 
     def askCreate(self):
         return self.opts.createtarget
@@ -320,20 +325,22 @@ class Ui(object):
             rules = self.askForRules()
         if not rules:
             self.err(_("no rules given"))
+
         return rules
 
     def rulelistFromPath(self, fpath, ask_create=True):
         try:
             xml = minidom.parse(fpath)
-        except (IOError, AttributeError), e:
+        except (IOError, AttributeError) as e:
             if ask_create and self.allowCreateForMode():
                 self.writeRulelist(empty_rulelist())
                 return self.rulelistFromPath(fpath)
             self.err(_(u"invalid file") + u": %s\n(%s)" % (fpath, e))
-        except ParseError, e:
+        except ParseError as e:
             self.err(_(u"invalid xml file") + u": %s\n" % (fpath,) + str(e))
         if xml.documentElement.tagName != "pgpRuleList":
             self.err(_(u"file contains no rules %s") % fpath)
+
         return xml
 
     def tbRulelistpath(self):
@@ -343,12 +350,13 @@ class Ui(object):
         )
         if not profile_dir:
             self.err(_(u"no thunderbird profile found"))
+
         return os.path.join(profile_dir, 'pgprules.xml')
 
     def writeRulelist(self, rulelist):
         try:
             write_rulelist(rulelist, self.targetpath)
-        except IOError, e:
+        except IOError as  e:
             self.err(_("write error") + ": %s\n%s" % (self.targetpath, e))
 
     def err(self, text):
@@ -362,6 +370,7 @@ class Ui(object):
 
 class Cli(Ui):
     def askForSourcePath(self):
+        import pdb; pdb.set_trace()
         self.err(_("no source file given"))
 
     def askForTargetPath(self):
@@ -376,15 +385,23 @@ class Cli(Ui):
 
 class Gui(Ui):
     def __init__(self, args, opts):
-        from Tkinter import Tk, IntVar, Checkbutton, Label
-        import tkFileDialog, tkSimpleDialog, tkMessageBox
+        if py2:
+            import Tkinter
+            from Tkinter import Tk, IntVar, Checkbutton, Label
+            import tkFileDialog as filedialog, \
+                   tkSimpleDialog as simpledialog, \
+                   tkMessageBox as messagebox
+
+        if py3:
+            import tkinter
+            from tkinter import filedialog, simpledialog, messagebox, Tk, IntVar, Checkbutton, Label
         self.tk = Tk()
         if sys.version_info >= (2, 6):
             self.tk.withdraw()
         self.IntVar, self.checkbutton, self.label = IntVar, Checkbutton, Label
-        self.fileDialog = tkFileDialog
-        self.simpleDialog = tkSimpleDialog
-        self.msgbox = tkMessageBox
+        self.filedialog = filedialog
+        self.simpledialog = simpledialog
+        self.msgbox = messagebox
         super(Gui, self).__init__(args, opts)
 
     def _get_filepath(self, dlg, title):
@@ -398,12 +415,12 @@ class Gui(Ui):
         return fp
 
     def askForSourcePath(self):
-        return self._get_filepath(self.fileDialog.askopenfilename,
+        return self._get_filepath(self.filedialog.askopenfilename,
                                   _(u"open file with rules"))
 
     def askForTargetPath(self):
         return self._get_filepath(
-            self.fileDialog.asksaveasfilename,
+            self.filedialog.asksaveasfilename,
             _(u"exportfile")
         )
 
@@ -415,7 +432,7 @@ class Gui(Ui):
         label = self.label
         modeaction = self.action
 
-        class RuleChooserDialog(self.simpleDialog.Dialog):
+        class RuleChooserDialog(self.simpledialog.Dialog):
             def body(self, master):
                 cnt = 0
                 l = label(master,
