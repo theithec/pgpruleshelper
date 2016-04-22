@@ -50,8 +50,12 @@ import time
 from xml.dom import minidom
 import locale
 
-__version__ = '0.4'
+__version__ = '0.4.1'
 '''
+'0.4.1'
+fix identation
+
+'0.4'
 py3 compatibility
 py2 requires 2.5
 
@@ -423,7 +427,7 @@ class Gui(Ui):
         )
         if not fp:
             self.err(_(u"invalid file") + ": %s" % title)
-            return fp
+        return fp
 
     def askForSourcePath(self):
         return self._get_filepath(self.filedialog.askopenfilename,
